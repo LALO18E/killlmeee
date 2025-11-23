@@ -46,7 +46,22 @@
     /* CAMBIO CLAVE: Redondeamos la imagen directamente */
     border-radius: 12px 12px 0 0; 
 }
-        .card:hover .card-image img { transform: scale(1.05); } /* Efecto Zoom al pasar mouse */
+        /* 1. Agregamos 'transition' a la tarjeta base para que la animación sea suave */
+.card { 
+    border-radius: 25px; 
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1); 
+    overflow: visible !important; 
+    border: none;
+    /* NUEVO: Esto hace que el movimiento no sea brusco */
+    transition: transform 0.3s ease, z-index 0s; 
+}
+
+/* 2. NUEVA REGLA: Al pasar el mouse sobre la TARJETA COMPLETA */
+.card:hover {
+    transform: scale(1.05); /* Crece toda la tarjeta */
+    z-index: 100;           /* Se pone por encima de las demás */
+    cursor: pointer;        /* Cambia el cursor a manita */
+}
         
         /* Encabezados y Navegación */
         .brand-logo { display: flex; align-items: center; font-size: 1.5rem; font-weight: 500; }
@@ -120,22 +135,28 @@
         </div>
     </div>
 
-    <div class="container" style="margin-top: 30px;">
-        <div class="card">
-            <div class="header-card">
-                <h4><i class="material-icons left">storefront</i> Tienda Productozzz</h4>
-                <p>Explora nuestro catálogo</p>
-            </div>
+    <div id="clientPanelContainer" class="container" style="margin-top: 30px; display: none;">
+    <div class="card">
         
-            <div class="card-content">
-                <div class="input-field" style="margin-top: 10px;">
-                    <i class="material-icons prefix">search</i>
-                    <input type="text" id="busquedaCliente" onkeyup="window.filtrarProductosCliente()">
-                    <label for="busquedaCliente">¿Qué estás buscando?</label>
+        <div class="header-card">
+            <h4><i class="material-icons left">storefront</i> Tienda Clientes</h4>
+            <p>Explora nuestro catálogo disponible</p>
+        </div>
+    
+        <div class="card-content">
+            <div class="row" style="margin-bottom: 0;">
+                <div class="col s12">
+                    <div class="input-field">
+                        <i class="material-icons prefix">search</i>
+                        <input type="text" id="busquedaCliente" onkeyup="window.filtrarProductosCliente()">
+                        <label for="busquedaCliente">¿Qué estás buscando?</label>
+                    </div>
                 </div>
             </div>
         </div>
+
     </div>
+</div>
 
     <div class="fixed-action-btn cart-fab" onclick="window.abrirCarrito()">
         <a class="btn-floating btn-large orange darken-2 pulse">
