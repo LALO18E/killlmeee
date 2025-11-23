@@ -3,7 +3,7 @@ import { getFirestore } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase
 import { getAuth } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 
 const firebaseConfig = {
-    apiKey: "AIzaSyBK38Zm2T5DGwZ9rPCsWdSFP5fDL8GlQZo", // <--- TUS CREDENCIALES AQUI
+    apiKey: "AIzaSyBK38Zm2T5DGwZ9rPCsWdSFP5fDL8GlQZo", 
     authDomain: "proyecto-crud-1811.firebaseapp.com",
     projectId: "proyecto-crud-1811",
     storageBucket: "proyecto-crud-1811.firebasestorage.app",
