@@ -79,16 +79,42 @@
             <div class="card">
                 <!-- Encabezado -->
                 <div class="header-card">
-                    <h4><i class="material-icons left">storefront</i>Catalogo</h4>
-                    <p>Buesca en nuestro catálogo</p>
+                    <h4><i class="material-icons left">storefront</i>Buscar en el Catálogo</h4>
                 </div>
 
-                <!-- Barra de busqueda de productos -->
                 <div class="card-content">
-                    <div class="input-field">
-                        <i class="material-icons prefix">search</i>
-                        <input type="text" id="busqueda" />
-                        <label for="busqueda">Buscar productos...</label>
+                    <div class="row">
+                        <!-- Barra de busqueda -->
+                        <div class="input-field col s12 m4">
+                            <i class="material-icons prefix">search</i>
+                            <input type="text" id="busqueda" />
+                            <label for="busqueda">Buscar productos...</label>
+                        </div>
+
+                        <!-- Filtro de categorias -->
+                        <div class="input-field col s12 m4">
+                            <i class="material-icons prefix">filter_list</i>
+                            <select id="filtroCategoria">
+                                <option value="todos" selected>Todas las categorías</option>
+                                <option value="Tecnología">Tecnología</option>
+                                <option value="Ropa">Ropa</option>
+                                <option value="Hogar">Hogar</option>
+                                <option value="Deportes">Deportes</option>
+                            </select>
+                            <label>Filtrar por Categoría</label>
+                        </div>
+
+                        <!-- Ordenar por -->
+                        <div class="input-field col s12 m4">
+                            <i class="material-icons prefix">sort</i>
+                            <select id="ordenamiento">
+                                <option value="nombre_asc" selected>Nombre (A-Z)</option>
+                                <option value="nombre_desc">Nombre (Z-A)</option>
+                                <option value="precio_asc">Precio (Menor a Mayor)</option>
+                                <option value="precio_desc">Precio (Mayor a Menor)</option>
+                            </select>
+                            <label>Ordenar por</label>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -188,13 +214,13 @@
                         <!-- Nombre -->
                         <div class="input-field col s12 m6">
                             <i class="material-icons prefix">label</i>
-                            <input type="text" id="nombre" required />
+                            <input type="text" id="nombre" />
                             <label for="nombre">Nombre</label>
                         </div>
                         <!-- Precio -->
                         <div class="input-field col s12 m6">
                             <i class="material-icons prefix">attach_money</i>
-                            <input type="number" id="precio" required step="0.01" />
+                            <input type="number" id="precio" />
                             <label for="precio">Precio ($)</label>
                         </div>
                         <!-- Categoria -->
@@ -212,25 +238,30 @@
                         </div>
                         <!-- Stock -->
                         <div class="input-field col s12 m6">
-                            <i class="material-icons prefix">inventory</i>
-                            <input type="number" id="stock" required />
+                            <input type="number" id="stock" />
                             <label for="stock">Stock</label>
                         </div>
                         <!-- Descripcion del producto -->
                         <div class="input-field col s12">
-                            <i class="material-icons prefix">description</i>
                             <textarea id="descripcion" class="materialize-textarea"></textarea>
                             <label for="descripcion">Descripción</label>
                         </div>
-                        <!-- URL para la imagen -->
-                        <div class="input-field col s12">
-                            <i class="material-icons prefix">collections</i>
-                            <textarea
-                                id="imgUrls"
-                                class="materialize-textarea"
-                                placeholder="Pega una URL por línea para el carrusel"
-                            ></textarea>
-                            <label for="imgUrls">URLs de Imágenes (Una por línea)</label>
+                        <!-- Entrada para las imagenes del producto -->
+                        <div class="col s12">
+                            <h6>Imágenes del producto</h6>
+                            <div class="row valign-wrapper">
+                                <div class="input-field col s10">
+                                    <i class="material-icons prefix">image</i>
+                                    <input type="url" id="tempImgUrl" placeholder="https://ejemplo.com/foto.jpg" />
+                                    <label for="tempImgUrl">Pegar URL de imagen</label>
+                                </div>
+                                <div class="col s2">
+                                    <button type="button" class="btn-floating green" id="btnAgregarUrl">
+                                        <i class="material-icons">add</i>
+                                    </button>
+                                </div>
+                            </div>
+                            <ul id="listaUrlsImagenes" class="collection"></ul>
                         </div>
                     </div>
                 </form>
@@ -279,8 +310,8 @@
                 </a>
             </div>
         </div>
-    </body>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
-    <script type="module" src="js/app.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+        <script type="module" src="js/app.js"></script>
+    </body>
 </html>
