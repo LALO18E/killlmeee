@@ -1,69 +1,20 @@
-import { auth } from './firebase-config.js';
-import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-import { Auth } from './auth.js';
-import { Store } from './store.js';
-import { UI } from './ui.js';
-import { Cart } from './cart.js';
+import { auth } from "./firebase-config.js";
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { Auth } from "./auth.js";
+import { Store } from "./store.js";
+import { UI } from "./ui.js";
+import { Cart } from "./cart.js";
 
 let currentUser = null;
-let editId = null;
+let imagenesTemporales = [];
 
-// ==========================================
-// 1. INICIALIZACIÓN
-// ==========================================
-document.addEventListener('DOMContentLoaded', async () => {
-    // Intentamos inicializar UI y Carrito de forma segura
-    try { UI.init(); } catch (e) { console.warn("UI init warning", e); }
-    try { Cart.renderBadge(); } catch (e) { console.warn("Cart init warning", e); }
-    
-    // Escuchamos el estado de autenticación (Login/Logout)
-    onAuthStateChanged(auth, (user) => {
-        currentUser = user;
-        
-        // A) Intentamos usar la función antigua UI, pero si falla, no detenemos el programa
-        try { UI.toggleAdmin(user); } catch (e) { console.log("UI Toggle omitido"); }
-
-        // B) LÓGICA MAESTRA DE PANELES (Esto arregla la duplicidad sí o sí)
-        const adminPanel = document.getElementById('adminPanelContainer');
-        const clientPanel = document.getElementById('clientPanelContainer');
-        const loginBtn = document.getElementById('btnLoginLi');
-        const logoutBtn = document.getElementById('btnLogoutLi');
-        const cartFab = document.querySelector('.cart-fab'); // Botón flotante del carrito
-
-        if (user) {
-            // ---> ES ADMINISTRADOR
-            if(adminPanel) adminPanel.style.display = 'block';   // Muestra Admin
-            if(clientPanel) clientPanel.style.display = 'none';  // Oculta Cliente
-            if(loginBtn) loginBtn.style.display = 'none';
-            if(logoutBtn) logoutBtn.style.display = 'block';
-            if(cartFab) cartFab.style.display = 'none'; // El admin no compra, oculta carrito
-        } else {
-            // ---> ES CLIENTE
-            if(adminPanel) adminPanel.style.display = 'none';    // Oculta Admin
-            if(clientPanel) clientPanel.style.display = 'block'; // Muestra Cliente
-            if(loginBtn) loginBtn.style.display = 'block';
-            if(logoutBtn) logoutBtn.style.display = 'none';
-            if(cartFab) cartFab.style.display = 'block'; // El cliente sí compra
-        }
-        
-        // C) Forzar actualización de iconos de borrar/editar en las tarjetas
-        setTimeout(() => {
-            const adminActions = document.querySelectorAll('.admin-actions');
-            adminActions.forEach(el => el.style.display = user ? 'flex' : 'none');
-        }, 500); // Pequeño retraso para asegurar que las tarjetas existan
-    });
-
-    await cargarCatalogo(true);
-});
-
-// Función para cargar productos
+// --- Carga Inicial ---
 async function cargarCatalogo(reset = false) {
     try {
         UI.showLoading(true);
-        const productos = await Store.load(reset);
-        // Renderizamos productos pasando el usuario actual para que sepa si mostrar botones de edición
+        var productos = await Store.load(reset);
+        aplicarFiltros();
         UI.renderProducts(productos, !reset, currentUser);
-        UI.updateLoadMoreBtn(Store.hasMore);
     } catch (e) {
         console.error("Error cargando catálogo", e);
     } finally {
@@ -71,50 +22,37 @@ async function cargarCatalogo(reset = false) {
     }
 }
 
-// ==========================================
-// 2. FUNCIONES GLOBALES (Window)
-// ==========================================
-
 // --- Autenticación ---
 window.iniciarSesion = async () => {
-    const u = document.getElementById('loginUser').value;
-    const p = document.getElementById('loginPass').value;
+    const u = document.getElementById("loginUser").value;
+    const p = document.getElementById("loginPass").value;
     try {
         await Auth.login(u, p);
-        M.Modal.getInstance(document.getElementById('modalLogin')).close();
-        M.toast({html: 'Bienvenido Admin', classes: 'green'});
-    } catch(e) { 
+        M.Modal.getInstance(document.getElementById("modalLogin")).close();
+        M.toast({ html: "Bienvenido Admin", classes: "green" });
+    } catch (e) {
         console.error(e);
-        M.toast({html: 'Error de credenciales', classes: 'red'}); 
+        M.toast({ html: "Error de credenciales", classes: "red" });
     }
 };
 
 window.cerrarSesion = async () => {
     await Auth.logout();
-    location.reload(); 
-};
-
-window.togglePassword = () => {
-    const input = document.getElementById('loginPass');
-    const icon = document.getElementById('togglePasswordBtn');
-    if (input.type === "password") {
-        input.type = "text";
-        icon.innerText = "visibility";
-    } else {
-        input.type = "password";
-        icon.innerText = "visibility_off";
-    }
+    location.reload();
 };
 
 // --- Carrito ---
 window.agregarCarrito = (id) => {
-    const p = Store.products.find(x => x.id === id);
-    if(p) { Cart.add(p); M.toast({html: 'Añadido al carrito', classes: 'green rounded'}); }
+    const p = Store.products.find((x) => x.id === id);
+    if (p) {
+        Cart.add(p);
+        M.toast({ html: "Añadido al carrito", classes: "green rounded" });
+    }
 };
 
 window.abrirCarrito = () => {
     Cart.renderModal();
-    M.Modal.getInstance(document.getElementById('modalCarrito')).open();
+    M.Modal.getInstance(document.getElementById("modalCarrito")).open();
 };
 
 window.updateCart = (id, n) => {
@@ -124,151 +62,251 @@ window.updateCart = (id, n) => {
 
 window.finalizarCompra = () => {
     const items = Cart.items;
-    if(!items.length) return M.toast({html: 'Carrito vacío'});
+    if (!items.length) return M.toast({ html: "Carrito vacío" });
     let msg = "Hola, quiero pedir:\n";
-    items.forEach(i => msg += `- ${i.nombre} (${i.qty})\n`);
-    window.open(`https://wa.me/5215518675722?text=${encodeURIComponent(msg)}`, '_blank');
+    items.forEach((i) => (msg += `- ${i.nombre} (${i.qty})\n`));
+    window.open(`https://wa.me/5215518675722?text=${encodeURIComponent(msg)}`, "_blank");
 };
 
-// --- Gestión de Productos (CRUD) ---
-window.cargarMas = () => cargarCatalogo(false);
+// Gestión de Imágenes (Uno por uno) ---
+window.agregarImagenTemporal = () => {
+    const input = document.getElementById("tempImgUrl");
+    const url = input.value.trim();
 
+    if (!url) return M.toast({ html: "Escribe una URL", classes: "red" });
+    if (url.includes("\n") || url.includes(" "))
+        return M.toast({ html: "La URL no debe tener espacios", classes: "red" });
+
+    imagenesTemporales.push(url);
+    renderizarListaImagenes();
+    input.value = "";
+};
+
+window.eliminarImagenTemp = (index) => {
+    imagenesTemporales.splice(index, 1);
+    renderizarListaImagenes();
+};
+
+function renderizarListaImagenes() {
+    const lista = document.getElementById("listaUrlsImagenes");
+    lista.innerHTML = "";
+    imagenesTemporales.forEach((url, index) => {
+        const li = document.createElement("li");
+        li.className = "collection-item img-item valign-wrapper";
+        li.style.justifyContent = "space-between";
+        li.innerHTML = `
+            <span class="truncate">${url}</span>
+            <button type="button" class="btn-flat red-text" onclick="eliminarImagenTemp(${index})">
+                <i class="material-icons">delete</i>
+            </button>
+        `;
+        lista.appendChild(li);
+    });
+}
+
+// --- Gestión de Productos (CRUD) ---
 window.abrirModalAgregar = () => {
-    document.getElementById('formProducto').reset();
-    window.productoEditandoId = null; // Resetear ID global
-    document.getElementById('modalTitulo').innerText = "Nuevo Producto";
-    M.Modal.getInstance(document.getElementById('modalProducto')).open();
+    document.getElementById("formProducto").reset();
+    window.productoEditandoId = null;
+
+    // Resetear imágenes
+    imagenesTemporales = [];
+    renderizarListaImagenes();
+
+    document.getElementById("modalTitulo").innerText = "Nuevo Producto";
+    M.Modal.getInstance(document.getElementById("modalProducto")).open();
 };
 
 window.editarProducto = (id) => {
-    const p = Store.products.find(x => x.id === id);
-    if(!p) return;
-    window.productoEditandoId = id; // Guardar ID globalmente
-    
-    document.getElementById('nombre').value = p.nombre;
-    document.getElementById('precio').value = p.precio;
-    document.getElementById('stock').value = p.stock || 0;
-    document.getElementById('descripcion').value = p.descripcion;
-    document.getElementById('categoria').value = p.categoria;
-    
-    let listaUrls = "";
-    if (p.imagenes && Array.isArray(p.imagenes)) listaUrls = p.imagenes.join('\n');
-    else if (p.imagen) listaUrls = p.imagen;
-    
-    document.getElementById('imgUrls').value = listaUrls;
+    const p = Store.products.find((x) => x.id === id);
+    if (!p) return;
+    window.productoEditandoId = id;
+
+    document.getElementById("nombre").value = p.nombre;
+    document.getElementById("precio").value = p.precio;
+    document.getElementById("stock").value = p.stock || 0;
+    document.getElementById("descripcion").value = p.descripcion;
+    document.getElementById("categoria").value = p.categoria;
+
+    imagenesTemporales = p.imagenes && p.imagenes.length ? [...p.imagenes] : p.imagen ? [p.imagen] : [];
+    renderizarListaImagenes();
 
     M.updateTextFields();
-    M.textareaAutoResize(document.getElementById('imgUrls'));
-    M.FormSelect.init(document.querySelectorAll('select'));
-    
-    document.getElementById('modalTitulo').innerText = "Editar Producto";
-    M.Modal.getInstance(document.getElementById('modalProducto')).open();
+
+    M.FormSelect.init(document.getElementById("categoria"));
+
+    document.getElementById("modalTitulo").innerText = "Editar Producto";
+    M.Modal.getInstance(document.getElementById("modalProducto")).open();
 };
 
 window.guardarProducto = async () => {
-    const imgText = document.getElementById('imgUrls').value.trim();
-    const imagenesLista = imgText ? imgText.split('\n').map(url => url.trim()).filter(u => u.length > 0) : [];
+    const nombre = document.getElementById("nombre").value.trim();
+    const precio = Number(document.getElementById("precio").value);
+    const stock = Number(document.getElementById("stock").value);
+
+    if (!nombre) return M.toast({ html: "El nombre es obligatorio", classes: "red" });
+    if (precio < 0) return M.toast({ html: "El precio no puede ser negativo", classes: "red" });
+    if (stock < 0) return M.toast({ html: "El stock no puede ser negativo", classes: "red" });
+    if (Math.round(stock) != stock) return M.toast({ html: "El stock debe ser un numero entero", classes: "red" });
+    if (imagenesTemporales.length === 0) return M.toast({ html: "Agrega al menos una imagen", classes: "red" });
 
     const data = {
-        nombre: document.getElementById('nombre').value,
-        precio: Number(document.getElementById('precio').value),
-        categoria: document.getElementById('categoria').value,
-        stock: Number(document.getElementById('stock').value),
-        descripcion: document.getElementById('descripcion').value,
-        imagenes: imagenesLista,
-        imagen: imagenesLista[0] || ''
+        nombre: nombre,
+        precio: precio,
+        categoria: document.getElementById("categoria").value,
+        stock: stock,
+        descripcion: document.getElementById("descripcion").value,
+        imagenes: imagenesTemporales,
+        imagen: imagenesTemporales[0] || "",
     };
-    
+
     try {
         UI.showLoading(true);
-        if(window.productoEditandoId) await Store.update(window.productoEditandoId, data);
+        if (window.productoEditandoId) await Store.update(window.productoEditandoId, data);
         else await Store.add(data);
-        
-        M.Modal.getInstance(document.getElementById('modalProducto')).close();
-        await cargarCatalogo(true); 
-        M.toast({html: '✅ Guardado', classes: 'green'});
-    } catch(e) { 
-        console.error(e); 
-        M.toast({html: 'Error al guardar', classes: 'red'}); 
-    } finally { 
-        UI.showLoading(false); 
+
+        M.Modal.getInstance(document.getElementById("modalProducto")).close();
+        await cargarCatalogo(true);
+        M.toast({ html: "Guardado correctamente", classes: "green" });
+    } catch (e) {
+        console.error(e);
+        M.toast({ html: "Error al guardar", classes: "red" });
+    } finally {
+        UI.showLoading(false);
     }
 };
 
 window.eliminarProducto = async (id) => {
-    if(confirm('¿Eliminar producto?')) {
+    if (confirm("¿Eliminar producto?")) {
         await Store.delete(id);
         await cargarCatalogo(true);
     }
 };
 
 window.verDetalle = (id) => {
-    const p = Store.products.find(item => item.id === id);
+    const p = Store.products.find((item) => item.id === id);
     if (!p) return;
 
-    // Llenar datos básicos
-    const safeText = (id, text) => { if(document.getElementById(id)) document.getElementById(id).innerText = text; };
-    safeText('detalleNombre', p.nombre);
-    safeText('detallePrecio', `$${Number(p.precio).toFixed(2)}`);
-    safeText('detalleCategoria', p.categoria);
-    safeText('detalleStock', `Stock: ${p.stock || 0}`);
-    safeText('detalleDescripcion', p.descripcion || "Sin descripción");
+    document.getElementById("detalleNombre").innerText = p.nombre;
+    document.getElementById("detallePrecio").innerText = `$${Number(p.precio).toFixed(2)}`;
+    document.getElementById("detalleCategoria").innerText = p.categoria;
+    document.getElementById("detalleStock").innerText = `Stock: ${p.stock || 0}`;
+    document.getElementById("detalleDescripcion").innerText = p.descripcion || "Sin descripción";
 
-    // Carrusel
-    const carruselContainer = document.getElementById('carruselProducto');
-    if(carruselContainer) {
-        let htmlImagenes = '';
-        let imagenesParaMostrar = (p.imagenes && p.imagenes.length > 0) ? p.imagenes : [p.imagen || 'https://via.placeholder.com/400x300?text=Sin+Imagen'];
-        
-        imagenesParaMostrar.forEach(url => {
-            htmlImagenes += `<a class="carousel-item" href="#!"><img src="${url}" style="object-fit: contain; width:100%; height:100%;"></a>`;
+    const carruselContainer = document.getElementById("carruselProducto");
+    if (carruselContainer) {
+        let htmlImagenes = "";
+        let imagenesParaMostrar =
+            p.imagenes && p.imagenes.length > 0 ? p.imagenes : [p.imagen || "https://via.placeholder.com/400"];
+
+        imagenesParaMostrar.forEach((url) => {
+            htmlImagenes += `<a class="carousel-item" href="#!"><img src="${url}"></a>`;
         });
         carruselContainer.innerHTML = htmlImagenes;
+
+        // Destruir instancia previa si existe e inicializar nueva
+        const instance = M.Carousel.getInstance(carruselContainer);
+        if (instance) instance.destroy();
+
+        setTimeout(() => {
+            M.Carousel.init(carruselContainer, { fullWidth: true, indicators: true });
+        }, 100);
     }
 
-    // Botón Agregar
-    const btnAgregar = document.getElementById('btnAgregarDesdeDetalle');
-    if(btnAgregar) {
-        const nuevoBtn = btnAgregar.cloneNode(true);
-        btnAgregar.parentNode.replaceChild(nuevoBtn, btnAgregar);
-        nuevoBtn.onclick = () => {
-            window.agregarCarrito(p.id);
-            M.Modal.getInstance(document.getElementById('modalDetalle')).close();
-        };
-    }
+    const btnAgregar = document.getElementById("btnAgregarDesdeDetalle");
+    const nuevoBtn = btnAgregar.cloneNode(true);
+    btnAgregar.parentNode.replaceChild(nuevoBtn, btnAgregar);
+    nuevoBtn.onclick = () => {
+        window.agregarCarrito(p.id);
+        M.Modal.getInstance(document.getElementById("modalDetalle")).close();
+    };
 
-    M.Modal.getInstance(document.getElementById('modalDetalle')).open();
-    
-    setTimeout(() => {
-        const elems = document.querySelectorAll('.carousel');
-        if(elems.length) M.Carousel.init(elems, { fullWidth: true, indicators: true });
-    }, 200);
+    M.Modal.getInstance(document.getElementById("modalDetalle")).open();
 };
-// ==========================================
-// 3. BÚSQUEDA (Funciona para Admin y Cliente)
-// ==========================================
 
-function ejecutarFiltro(idInput) {
-    const input = document.getElementById(idInput);
-    if (!input) return; // Si no existe el input, no hace nada
-    
-    const textoBuscado = input.value.toLowerCase().trim();
-    
-    // Seleccionamos las columnas (col) dentro del contenedor de productos
-    const tarjetas = document.querySelectorAll('#listaProductos .col');
+window.aplicarFiltros = () => {
+    const texto = document.getElementById("busqueda").value.toLowerCase();
+    const catFilter = document.getElementById("filtroCategoria").value; // Select nuevo
+    const orden = document.getElementById("ordenamiento").value; // Select nuevo
 
-    tarjetas.forEach(col => {
-        // Obtenemos todo el texto de la tarjeta (título, precio, categoría)
-        const contenidoTarjeta = col.textContent || col.innerText;
+    let resultado = [...Store.products];
 
-        // Si el texto de la tarjeta incluye lo que escribimos...
-        if (contenidoTarjeta.toLowerCase().includes(textoBuscado)) {
-            col.style.display = ''; // ...la mostramos
-        } else {
-            col.style.display = 'none'; // ...si no, la ocultamos
-        }
+    // 1. Filtro Texto
+    if (texto) {
+        resultado = resultado.filter((p) => p.nombre.toLowerCase().includes(texto));
+    }
+
+    // 2. Filtro Categoría
+    if (catFilter && catFilter !== "todos") {
+        resultado = resultado.filter((p) => p.categoria === catFilter);
+    }
+
+    // 3. Ordenamiento
+    resultado.sort((a, b) => {
+        if (orden === "nombre_asc") return a.nombre.localeCompare(b.nombre);
+        if (orden === "nombre_desc") return b.nombre.localeCompare(a.nombre);
+        if (orden === "precio_asc") return a.precio - b.precio;
+        if (orden === "precio_desc") return b.precio - a.precio;
+        return 0;
     });
-}
 
-window.filtrarProductos = () => ejecutarFiltro('busqueda');          // Para Admin
-window.filtrarProductosCliente = () => ejecutarFiltro('busquedaCliente'); // Para Cliente
+    // 4. Renderizar
+    UI.renderProducts(resultado, false, currentUser);
+};
+
+window.togglePassword = () => {
+    const input = document.getElementById("loginPass");
+    const icon = document.getElementById("btn_togglePassword");
+    if (input.type === "password") {
+        input.type = "text";
+        icon.innerText = "visibility";
+    } else {
+        input.type = "password";
+        icon.innerText = "visibility_off";
+    }
+};
+
+// Inicialización
+document.addEventListener("DOMContentLoaded", async () => {
+    // Inicializar existentes
+    document.querySelector("#btn_iniciarSesion").addEventListener("click", window.iniciarSesion);
+    document.querySelector("#btn_cerrarSesion").addEventListener("click", window.cerrarSesion);
+    document.querySelector("#btn_abrirCarrito").addEventListener("click", window.abrirCarrito);
+    document.querySelector("#btn_finalizarCompra").addEventListener("click", window.finalizarCompra);
+    document.querySelector("#btn_abrirModalAgregar").addEventListener("click", window.abrirModalAgregar);
+    document.querySelector("#btn_guardarProducto").addEventListener("click", window.guardarProducto);
+    document.querySelector("#btn_togglePassword").addEventListener("click", window.togglePassword);
+    document.querySelector("#btnAgregarUrl").addEventListener("click", window.agregarImagenTemporal);
+    document.querySelector("#busqueda").addEventListener("keyup", window.aplicarFiltros);
+    document.querySelector("#filtroCategoria").addEventListener("change", window.aplicarFiltros);
+    document.querySelector("#ordenamiento").addEventListener("change", window.aplicarFiltros);
+
+    // Inicializar UI y Carrito
+    UI.init();
+    Cart.renderBadge();
+
+    onAuthStateChanged(auth, (user) => {
+        currentUser = user;
+
+        // Control de visibilidad paneles
+        const adminPanel = document.getElementById("adminPanelContainer");
+        const loginBtnLi = document.getElementById("btnLoginLi");
+        const logoutBtnLi = document.getElementById("btnLogoutLi");
+        const cartFab = document.querySelector(".fixed-action-btn");
+
+        if (user) {
+            if (adminPanel) adminPanel.style.display = "block";
+            if (loginBtnLi) loginBtnLi.style.display = "none";
+            if (logoutBtnLi) logoutBtnLi.style.display = "block";
+            if (cartFab) cartFab.style.display = "none";
+        } else {
+            if (adminPanel) adminPanel.style.display = "none";
+            if (loginBtnLi) loginBtnLi.style.display = "block";
+            if (logoutBtnLi) logoutBtnLi.style.display = "none";
+            if (cartFab) cartFab.style.display = "block";
+        }
+
+        // Recargar catálogo para mostrar botones de edición si es admin
+        cargarCatalogo(false);
+    });
+});

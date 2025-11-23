@@ -1,298 +1,317 @@
 <!DOCTYPE html>
 <html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tienda-CRUD</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-    <link rel="stylesheet" href="css/styles.css">
-    <style>
-    /* FORZAR TAMAÑO PEQUEÑO EN CARRITO */
-    #listaCarrito img, .cart-item img {
-        width: 50px !important;    /* Ancho fijo */
-        height: 50px !important;   /* Alto fijo */
-        object-fit: cover !important; /* Recorta para no deformar */
-        border-radius: 4px !important;
-        margin-right: 10px !important;
-    }
-    body { 
-            background: linear-gradient(135deg, #37c7c0 0%, #5557d8 100%); 
-            min-height: 100vh; 
-        }
-.card { 
-    border-radius: 25px; 
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1); 
-    overflow: visible !important; /* IMPORTANTE: Visible para que el botón no se corte */
-    border: none;
-}
-        /* CORRECCIÓN DEL BOTÓN CORTADO */
-.card-image {
-    height: 200px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    position: relative;
-    /* CAMBIO CLAVE: Quitamos overflow: hidden y ponemos visible */
-    overflow: visible !important; 
-    /* Mantenemos el redondeo superior en el contenedor por si acaso */
-    border-radius: 12px 12px 0 0; 
-}
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Tienda-CRUD</title>
 
-.card-image img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    /* CAMBIO CLAVE: Redondeamos la imagen directamente */
-    border-radius: 12px 12px 0 0; 
-}
-        /* 1. Agregamos 'transition' a la tarjeta base para que la animación sea suave */
-.card { 
-    border-radius: 25px; 
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1); 
-    overflow: visible !important; 
-    border: none;
-    /* NUEVO: Esto hace que el movimiento no sea brusco */
-    transition: transform 0.3s ease, z-index 0s; 
-}
+        <link rel="stylesheet" href="css/styles.css" />
 
-/* 2. NUEVA REGLA: Al pasar el mouse sobre la TARJETA COMPLETA */
-.card:hover {
-    transform: scale(1.05); /* Crece toda la tarjeta */
-    z-index: 100;           /* Se pone por encima de las demás */
-    cursor: pointer;        /* Cambia el cursor a manita */
-}
-        
-        /* Encabezados y Navegación */
-        .brand-logo { display: flex; align-items: center; font-size: 1.5rem; font-weight: 500; }
-        .header-card { background: linear-gradient(135deg, #6a62cf 0%, hsl(152, 82%, 63%) 100%); color: white; padding: 20px 30px; border-radius: 12px 12px 0 0; }
-        
-        /* Botones de Admin flotantes en la tarjeta */
-        .admin-actions { position: absolute; top: 10px; right: 10px; display: none; gap: 5px; z-index: 10; }
-        
-        /* Pantalla de Carga (Loading) */
-        .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.9); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 9999; }
-        
-        /* Utilidades varias */
-        #modalLogin { border-radius: 15px; }
-        #adminPanelContainer { display: none; } /* Oculto por defecto hasta hacer login */
-        .password-toggle { cursor: pointer; }
-    </style>
-</style>
-</head>
-<body>
+        <!-- Materialize css -->
+        <link
+            rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css"
+        />
 
-    <nav class="white">
-        <div class="nav-wrapper container">
-            <a href="#" class="brand-logo left black-text">
-                <i class="material-icons left">store</i>Tienda-CRUD
-            </a>
-            <ul class="right">
-                <li id="btnLoginLi">
-                    <a class="btn blue darken-3 waves-effect waves-light modal-trigger" href="#modalLogin">
-                        ADMIN LOGIN
-                    </a>
-                </li>
-            
-                <li id="btnLogoutLi" style="display: none;">
-                    <a class="btn red darken-2 waves-effect waves-light" onclick="window.cerrarSesion()">
-                        <i class="material-icons left">exit_to_app</i>SALIR
-                    </a>
-                </li>
-            </ul>
-        </div>
-    </nav>
+        <!-- Iconos -->
+        <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+    </head>
+    <body>
+        <!-- Navbar -->
+        <nav class="white">
+            <div class="nav-wrapper container">
+                <!-- Logo de la tienda -->
+                <a href="#" class="brand-logo left black-text"> <i class="material-icons left">store</i>Tienda-CRUD </a>
 
-    <div id="loadingOverlay" class="loading-overlay" style="display: none;">
-        <div class="preloader-wrapper big active">
-            <div class="spinner-layer spinner-blue-only">
-                <div class="circle-clipper left"><div class="circle"></div></div>
-                <div class="gap-patch"><div class="circle"></div></div>
-                <div class="circle-clipper right"><div class="circle"></div></div>
+                <ul class="right">
+                    <!-- Boton de login -->
+                    <li id="btnLoginLi">
+                        <a class="btn blue darken-3 waves-effect waves-light modal-trigger" href="#modalLogin">
+                            ADMIN LOGIN
+                        </a>
+                    </li>
+                    <!-- Boton para cerrar sesion de administrador -->
+                    <li id="btnLogoutLi" style="display: none">
+                        <a class="btn red darken-2 waves-effect waves-light" id="btn_cerrarSesion">
+                            <i class="material-icons left">exit_to_app</i>SALIR
+                        </a>
+                    </li>
+                </ul>
             </div>
-        </div>
-        <h5 id="loadingText">Cargando...</h5>
-    </div>
-    
-    <div id="adminPanelContainer" class="container " style=" margin-top: 30px;">
-        <div class="card">
-            <div class="header-card">
-                <h4><i class="material-icons left">dashboard</i> Panel de Control</h4>
-                <p>Administrador del inventario de productos</p>
-            </div>
-        
-            <div class="card-content">
-                <button class="btn  orange darken-1 waves-effect waves-light btn-large" onclick="window.abrirModalAgregar()" style="width: 100%; max-width: 300px; margin-bottom: 25px;">
-                    <i class="material-icons left">add_circle</i> AGREGAR PRODUCTO
-                </button>
-            
-                <div class="input-field">
-                    <i class="material-icons prefix">search</i>
-                    <input type="text" id="busqueda" onkeyup="window.filtrarProductos()">
-                    <label for="busqueda">Buscar productos...</label>
+        </nav>
+
+        <!-- Pantalla de carga -->
+        <div id="loadingOverlay" class="loading-overlay" style="display: none">
+            <div class="preloader-wrapper big active">
+                <div class="spinner-layer spinner-blue-only">
+                    <div class="circle-clipper left"><div class="circle"></div></div>
+                    <div class="gap-patch"><div class="circle"></div></div>
+                    <div class="circle-clipper right"><div class="circle"></div></div>
                 </div>
             </div>
+            <h5 id="loadingText">Cargando...</h5>
         </div>
-    </div>
 
-    <div id="clientPanelContainer" class="container" style="margin-top: 30px; display: none;">
-    <div class="card">
-        
-        <div class="header-card">
-            <h4><i class="material-icons left">storefront</i> Tienda Clientes</h4>
-            <p>Explora nuestro catálogo disponible</p>
-        </div>
-    
-        <div class="card-content">
-            <div class="row" style="margin-bottom: 0;">
-                <div class="col s12">
-                    <div class="input-field">
-                        <i class="material-icons prefix">search</i>
-                        <input type="text" id="busquedaCliente" onkeyup="window.filtrarProductosCliente()">
-                        <label for="busquedaCliente">¿Qué estás buscando?</label>
-                    </div>
+        <!-- Panel de control del administrador -->
+        <div id="adminPanelContainer" class="container" style="margin-top: 30px">
+            <div class="card">
+                <!-- Titulo -->
+                <div class="header-card">
+                    <h4><i class="material-icons left">dashboard</i> Panel de Control</h4>
+                    <p>Administrador del inventario de productos</p>
+                </div>
+
+                <div class="card-content">
+                    <!-- Boton para agregar producto -->
+                    <button
+                        class="btn orange darken-1 waves-effect waves-light btn-large"
+                        id="btn_abrirModalAgregar"
+                        style="width: 100%; max-width: 300px; margin-bottom: 25px"
+                    >
+                        <i class="material-icons left">add_circle</i> AGREGAR PRODUCTO
+                    </button>
                 </div>
             </div>
         </div>
 
-    </div>
-</div>
-
-    <div class="fixed-action-btn cart-fab" onclick="window.abrirCarrito()">
-        <a class="btn-floating btn-large orange darken-2 pulse">
-            <i class="large material-icons">shopping_cart</i>
-        </a>
-        <span class="cart-badge" id="cartCount">0</span>
-    </div>
-
-    <div id="modalCarrito" class="modal modal-fixed-footer">
-        <div class="modal-content">
-            <h4><i class="material-icons left">shopping_cart</i> Tu Carrito</h4>
-            <ul id="listaCarrito"></ul>
-            <div class="row right-align">
-                <h5>Total: <span class="green-text" id="cartTotal">$0.00</span></h5>
-            </div>
-        </div>
-        <div class="modal-footer">
-            <a href="#!" class="modal-close btn-flat">Seguir viendo</a>
-            <a href="#!" class="btn orange darken-2" onclick="window.finalizarCompra()">
-                <i class="material-icons left">whatsapp</i>Pedir
-            </a>
-        </div>
-    </div>
-
-    <div id="modalLogin" class="modal" style="border-radius: 15px; max-width: 380px; overflow: visible;">
-        <div class="modal-content" style="padding: 30px 24px 10px 24px;">
-            <h4 class="center-align" style="color: #1976d2; margin-top: 0; font-weight: 400;">Acceso Administrativo</h4>
-            
-            <form style="margin-top: 30px;">
-                <div class="input-field">
-                    <i class="material-icons prefix" style="color: #333;">person</i>
-                    <input type="text" id="loginUser" placeholder="admin">
-                    <label for="loginUser" class="active">Nombre de Usuario</label>
-                    <span class="helper-text center-align" style="color: #888;">Sin @tienda.com</span>
+        <!-- Opciones de busqueda -->
+        <div class="container" style="margin-top: 30px">
+            <div class="card">
+                <!-- Encabezado -->
+                <div class="header-card">
+                    <h4><i class="material-icons left">storefront</i>Buscar en el Catálogo</h4>
                 </div>
 
-                <div class="input-field" style="margin-top: 20px;">
-                    <i class="material-icons prefix" style="color: #333;">lock</i>
-                    <input type="password" id="loginPass" placeholder="••••••">
-                    <label for="loginPass" class="active">Contraseña</label>
-                    <i class="material-icons" id="togglePasswordBtn" onclick="togglePassword()" 
-                       style="position: absolute; right: 0; top: 10px; cursor: pointer; color: #333;">
-                       visibility_off
-                    </i>
-                </div>
-            </form>
-        </div>
-
-        <div class="modal-footer" style="padding: 0; height: 50px;">
-            <a onclick="window.iniciarSesion()" class="waves-effect waves-light btn-flat blue darken-2 white-text" 
-               style="width: 100%; height: 100%; border-radius: 0 0 15px 15px; display: flex; align-items: center; justify-content: center; font-weight: bold; letter-spacing: 1px;">
-                <i class="material-icons left" style="margin-right: 10px;">vpn_key</i> ENTRAR
-            </a>
-        </div>
-    </div>
-    <div class="container" style="margin-top: 30px;">
-        <div id="listaProductos" class="row"></div>
-        <div id="btnCargarMasContainer" class="center-align" style="margin: 40px 0;"></div>
-    </div>
-
-    <div id="modalProducto" class="modal modal-fixed-footer" style="max-width: 700px;">
-        <div class="modal-content">
-            <h4 id="modalTitulo">Gestión de Producto</h4>
-            <form id="formProducto">
-                <div class="row">
-                    <div class="input-field col s12 m6">
-                        <i class="material-icons prefix">label</i>
-                        <input type="text" id="nombre" required>
-                        <label for="nombre">Nombre</label>
-                    </div>
-                    <div class="input-field col s12 m6">
-                        <i class="material-icons prefix">attach_money</i>
-                        <input type="number" id="precio" required step="0.01">
-                        <label for="precio">Precio ($)</label>
-                    </div>
-                    <div class="input-field col s12 m6">
-                        <i class="material-icons prefix">category</i>
-                        <select id="categoria">
-                            <option value="" disabled selected>Elige una categoría</option>
-                            <option value="Tecnología">Tecnología</option>
-                            <option value="Ropa">Ropa</option>
-                            <option value="Hogar">Hogar</option>
-                            <option value="Deportes">Deportes</option>
-                        </select>
-                        <label>Categoría</label>
-                    </div>
-                    <div class="input-field col s12 m6">
-                        <i class="material-icons prefix">inventory</i>
-                        <input type="number" id="stock" required>
-                        <label for="stock">Stock</label>
-                    </div>
-                    <div class="input-field col s12">
-                        <i class="material-icons prefix">description</i>
-                        <textarea id="descripcion" class="materialize-textarea"></textarea>
-                        <label for="descripcion">Descripción</label>
-                    </div>
-                    <div class="input-field col s12">
-                        <i class="material-icons prefix">collections</i>
-                        <textarea id="imgUrls" class="materialize-textarea" placeholder="Pega una URL por línea para el carrusel"></textarea>
-                        <label for="imgUrls">URLs de Imágenes (Una por línea)</label>
-                    </div>
-                </div>
-            </form>
-        </div>
-        <div class="modal-footer">
-            <a href="#!" class="modal-close btn-flat">Cancelar</a>
-            <a href="#!" class="btn green" onclick="window.guardarProducto()">
-                <i class="material-icons left">save</i>Guardar
-            </a>
-        </div>
-    </div>
-    <div id="modalDetalle" class="modal modal-fixed-footer">
-        <div class="modal-content">
-            <div class="row">
-                <div class="col s12 m6">
-                    <div class="carousel carousel-slider center" id="carruselProducto" style="height: 300px; border-radius: 8px;">
+                <div class="card-content">
+                    <div class="row">
+                        <!-- Barra de busqueda -->
+                        <div class="input-field col s12 m4">
+                            <i class="material-icons prefix">search</i>
+                            <input type="text" id="busqueda" />
+                            <label for="busqueda">Buscar productos...</label>
                         </div>
-                </div>
-                <div class="col s12 m6">
-                    <h4 id="detalleNombre"></h4>
-                    <h5 class="green-text" id="detallePrecio"></h5>
-                    <div class="chip blue lighten-4" id="detalleCategoria"></div>
-                    <div class="chip orange lighten-4" id="detalleStock"></div>
-                    <p id="detalleDescripcion" style="margin-top: 20px; font-size: 1.1rem;"></p>
+
+                        <!-- Filtro de categorias -->
+                        <div class="input-field col s12 m4">
+                            <i class="material-icons prefix">filter_list</i>
+                            <select id="filtroCategoria">
+                                <option value="todos" selected>Todas las categorías</option>
+                                <option value="Tecnología">Tecnología</option>
+                                <option value="Ropa">Ropa</option>
+                                <option value="Hogar">Hogar</option>
+                                <option value="Deportes">Deportes</option>
+                            </select>
+                            <label>Filtrar por Categoría</label>
+                        </div>
+
+                        <!-- Ordenar por -->
+                        <div class="input-field col s12 m4">
+                            <i class="material-icons prefix">sort</i>
+                            <select id="ordenamiento">
+                                <option value="nombre_asc" selected>Nombre (A-Z)</option>
+                                <option value="nombre_desc">Nombre (Z-A)</option>
+                                <option value="precio_asc">Precio (Menor a Mayor)</option>
+                                <option value="precio_desc">Precio (Mayor a Menor)</option>
+                            </select>
+                            <label>Ordenar por</label>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-        <div class="modal-footer">
-            <a href="#!" class="modal-close btn-flat">Cerrar</a>
-            <a class="btn orange darken-2" id="btnAgregarDesdeDetalle">
-                <i class="material-icons left">add_shopping_cart</i>Agregar al Carrito
-            </a>
-        </div>
-    </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
-    <script type="module" src="js/app.js"></script>
-</body>
+        <!-- Lista de productos -->
+        <div class="container" style="margin-top: 30px">
+            <div id="listaProductos" class="row"></div>
+        </div>
+
+        <!-- Boton flotante del carrito de compras -->
+        <div class="fixed-action-btn cart-fab" id="btn_abrirCarrito">
+            <a class="btn-floating btn-large orange darken-2 pulse">
+                <i class="large material-icons">shopping_cart</i>
+            </a>
+            <span class="cart-badge" id="cartCount">0</span>
+        </div>
+        <!-- FIN DEL CONTENIDO FIJO -->
+
+        <!-- PANTALLAS Y MENUS EMERGENTES -->
+        <!-- Pantalla emergente del carrito -->
+        <div id="modalCarrito" class="modal modal-fixed-footer">
+            <div class="modal-content">
+                <h4><i class="material-icons left">shopping_cart</i> Tu Carrito</h4>
+                <ul id="listaCarrito"></ul>
+                <div class="row right-align">
+                    <h5>Total: <span class="green-text" id="cartTotal">$0.00</span></h5>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <a href="#!" class="modal-close btn-flat">Seguir viendo</a>
+                <a href="#!" class="btn orange darken-2" id="btn_finalizarCompra">
+                    <i class="material-icons left">whatsapp</i>Pedir
+                </a>
+            </div>
+        </div>
+
+        <!-- Menu para iniciar sesion -->
+        <div id="modalLogin" class="modal" style="border-radius: 15px; max-width: 380px; overflow: visible">
+            <div class="modal-content" style="padding: 30px 24px 10px 24px">
+                <h4 class="center-align" style="color: #1976d2; margin-top: 0; font-weight: 400">
+                    Acceso Administrativo
+                </h4>
+
+                <form style="margin-top: 30px">
+                    <!-- Nombre -->
+                    <div class="input-field">
+                        <i class="material-icons prefix" style="color: #333">person</i>
+                        <input type="text" id="loginUser" placeholder="admin" />
+                        <label for="loginUser" class="active">Nombre de Usuario</label>
+                        <span class="helper-text center-align" style="color: #888">Sin @tienda.com</span>
+                    </div>
+
+                    <!-- Contraseña -->
+                    <div class="input-field" style="margin-top: 20px">
+                        <i class="material-icons prefix" style="color: #333">lock</i>
+                        <input type="password" id="loginPass" placeholder="••••••" />
+                        <label for="loginPass" class="active">Contraseña</label>
+                        <i
+                            class="material-icons"
+                            id="btn_togglePassword"
+                            style="position: absolute; right: 0; top: 10px; cursor: pointer; color: #333"
+                        >
+                            visibility_off
+                        </i>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Boton para iniciar sesion -->
+            <div class="modal-footer" style="padding: 0; height: 50px">
+                <a
+                    id="btn_iniciarSesion"
+                    class="waves-effect waves-light btn-flat blue darken-2 white-text"
+                    style="
+                        width: 100%;
+                        height: 100%;
+                        border-radius: 0 0 15px 15px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-weight: bold;
+                        letter-spacing: 1px;
+                    "
+                >
+                    <i class="material-icons left" style="margin-right: 10px">vpn_key</i> ENTRAR
+                </a>
+            </div>
+        </div>
+
+        <!-- Menu para agregar un nuevo producto -->
+        <div id="modalProducto" class="modal modal-fixed-footer" style="max-width: 700px">
+            <div class="modal-content">
+                <h4 id="modalTitulo">Gestión de Producto</h4>
+                <form id="formProducto">
+                    <div class="row">
+                        <!-- Nombre -->
+                        <div class="input-field col s12 m6">
+                            <i class="material-icons prefix">label</i>
+                            <input type="text" id="nombre" />
+                            <label for="nombre">Nombre</label>
+                        </div>
+                        <!-- Precio -->
+                        <div class="input-field col s12 m6">
+                            <i class="material-icons prefix">attach_money</i>
+                            <input type="number" id="precio" />
+                            <label for="precio">Precio ($)</label>
+                        </div>
+                        <!-- Categoria -->
+                        <div class="input-field col s12 m6">
+                            <i class="material-icons prefix">category</i>
+                            <select id="categoria">
+                                <option value="" disabled selected>Elige una categoría</option>
+                                <!-- Lista de categorias -->
+                                <option value="Tecnología">Tecnología</option>
+                                <option value="Ropa">Ropa</option>
+                                <option value="Hogar">Hogar</option>
+                                <option value="Deportes">Deportes</option>
+                            </select>
+                            <label>Categoría</label>
+                        </div>
+                        <!-- Stock -->
+                        <div class="input-field col s12 m6">
+                            <input type="number" id="stock" />
+                            <label for="stock">Stock</label>
+                        </div>
+                        <!-- Descripcion del producto -->
+                        <div class="input-field col s12">
+                            <textarea id="descripcion" class="materialize-textarea"></textarea>
+                            <label for="descripcion">Descripción</label>
+                        </div>
+                        <!-- Entrada para las imagenes del producto -->
+                        <div class="col s12">
+                            <h6>Imágenes del producto</h6>
+                            <div class="row valign-wrapper">
+                                <div class="input-field col s10">
+                                    <i class="material-icons prefix">image</i>
+                                    <input type="url" id="tempImgUrl" placeholder="https://ejemplo.com/foto.jpg" />
+                                    <label for="tempImgUrl">Pegar URL de imagen</label>
+                                </div>
+                                <div class="col s2">
+                                    <button type="button" class="btn-floating green" id="btnAgregarUrl">
+                                        <i class="material-icons">add</i>
+                                    </button>
+                                </div>
+                            </div>
+                            <ul id="listaUrlsImagenes" class="collection"></ul>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Botones -->
+            <div class="modal-footer">
+                <a href="#!" class="modal-close btn-flat">Cancelar</a>
+                <a href="#!" class="btn green" id="btn_guardarProducto">
+                    <i class="material-icons left">save</i>Guardar
+                </a>
+            </div>
+        </div>
+
+        <!-- Pantalla para mostrar detalles del producto seleccionado -->
+        <div id="modalDetalle" class="modal modal-fixed-footer">
+            <div class="modal-content">
+                <div class="row">
+                    <div class="col s12 m6">
+                        <!-- Carousel -->
+                        <div
+                            class="carousel carousel-slider center"
+                            id="carruselProducto"
+                            style="height: 300px; border-radius: 8px"
+                        ></div>
+                    </div>
+                    <div class="col s12 m6">
+                        <!-- Nombre del producto -->
+                        <h4 id="detalleNombre"></h4>
+                        <!-- Precio -->
+                        <h5 class="green-text" id="detallePrecio"></h5>
+                        <!-- Categoria -->
+                        <div class="chip blue lighten-4" id="detalleCategoria"></div>
+                        <!-- Stock -->
+                        <div class="chip orange lighten-4" id="detalleStock"></div>
+                        <!-- Descripcion -->
+                        <p id="detalleDescripcion" style="margin-top: 20px; font-size: 1.1rem"></p>
+                    </div>
+                </div>
+            </div>
+            <!-- Botones -->
+            <div class="modal-footer">
+                <a href="#!" class="modal-close btn-flat">Cerrar</a>
+                <a class="btn orange darken-2" id="btnAgregarDesdeDetalle">
+                    <i class="material-icons left">add_shopping_cart</i>Agregar al Carrito
+                </a>
+            </div>
+        </div>
+
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+        <script type="module" src="js/app.js"></script>
+    </body>
 </html>
