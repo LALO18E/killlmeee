@@ -37,9 +37,22 @@ body {
     /* CAMBIO CLAVE: Redondeamos la imagen directamente */
     border-radius: 12px 12px 0 0;
 }
-.card:hover .card-image img {
-    transform: scale(1.05);
-} /* Efecto Zoom al pasar mouse */
+/* 1. Agregamos 'transition' a la tarjeta base para que la animación sea suave */
+.card {
+    border-radius: 25px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    overflow: visible !important;
+    border: none;
+    /* NUEVO: Esto hace que el movimiento no sea brusco */
+    transition: transform 0.3s ease, z-index 0s;
+}
+
+/* 2. NUEVA REGLA: Al pasar el mouse sobre la TARJETA COMPLETA */
+.card:hover {
+    transform: scale(1.05); /* Crece toda la tarjeta */
+    z-index: 100; /* Se pone por encima de las demás */
+    cursor: pointer; /* Cambia el cursor a manita */
+}
 
 /* Encabezados y Navegación */
 .brand-logo {
