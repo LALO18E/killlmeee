@@ -11,10 +11,8 @@ let editId = null;
 async function cargarCatalogo(reset = false) {
     try {
         UI.showLoading(true);
-        const productos = await Store.load(reset);
-        // Renderizamos productos pasando el usuario actual para que sepa si mostrar botones de edición
+        var productos = await Store.load(reset);
         UI.renderProducts(productos, !reset, currentUser);
-        UI.updateLoadMoreBtn(Store.hasMore);
     } catch (e) {
         console.error("Error cargando catálogo", e);
     } finally {
@@ -85,7 +83,7 @@ window.finalizarCompra = () => {
 };
 
 // --- Gestión de Productos (CRUD) ---
-window.cargarMas = () => cargarCatalogo(false);
+// window.cargarMas = () => cargarCatalogo(false);
 
 window.abrirModalAgregar = () => {
     document.getElementById("formProducto").reset();
