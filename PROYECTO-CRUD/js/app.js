@@ -6,7 +6,6 @@ import { UI } from "./ui.js";
 import { Cart } from "./cart.js";
 
 let currentUser = null;
-let editId = null;
 
 async function cargarCatalogo(reset = false) {
     try {
@@ -83,8 +82,6 @@ window.finalizarCompra = () => {
 };
 
 // --- Gestión de Productos (CRUD) ---
-// window.cargarMas = () => cargarCatalogo(false);
-
 window.abrirModalAgregar = () => {
     document.getElementById("formProducto").reset();
     window.productoEditandoId = null; // Resetear ID global
@@ -254,17 +251,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     document.querySelector("#busqueda").addEventListener("keyup", window.filtrarProductos);
 
-    // Intentamos inicializar UI y Carrito de forma segura
-    try {
-        UI.init();
-    } catch (e) {
-        console.warn("UI init warning", e);
-    }
-    try {
-        Cart.renderBadge();
-    } catch (e) {
-        console.warn("Cart init warning", e);
-    }
+    // Inicializar UI y Carrito
+    UI.init();
+    Cart.renderBadge();
 
     // Escuchamos el estado de autenticación (Login/Logout)
     onAuthStateChanged(auth, (user) => {

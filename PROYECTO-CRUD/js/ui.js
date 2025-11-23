@@ -39,12 +39,12 @@ export const UI = {
         const html = products
             .map(
                 (p) => `
-            <div class="col s12 m6 l4" id="prod-${p.id}">
-                <div class="card hoverable">
+            <div class="col s12 m6 l4 producto" id="prod-${p.id}">
+                <div class="card hoverable" style="border-radius: 20px">
                     <div class="card-image">
                         <img src="${p.imagen || "https://via.placeholder.com/300"}" onclick="window.verDetalle('${
                     p.id
-                }')">
+                }')" style="border-radius: 15px 15px 0px 0px">
                         <a class="btn-floating halfway-fab orange darken-2" onclick="window.agregarCarrito('${
                             p.id
                         }')"><i class="material-icons">add_shopping_cart</i></a>

@@ -11,12 +11,7 @@ body {
     background: linear-gradient(135deg, #37c7c0 0%, #5557d8 100%);
     min-height: 100vh;
 }
-.card {
-    border-radius: 25px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-    overflow: visible !important; /* IMPORTANTE: Visible para que el botón no se corte */
-    border: none;
-}
+
 /* CORRECCIÓN DEL BOTÓN CORTADO */
 .card-image {
     height: 200px;
@@ -39,16 +34,15 @@ body {
 }
 /* 1. Agregamos 'transition' a la tarjeta base para que la animación sea suave */
 .card {
-    border-radius: 25px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
     overflow: visible !important;
     border: none;
-    /* NUEVO: Esto hace que el movimiento no sea brusco */
-    transition: transform 0.3s ease, z-index 0s;
 }
-
+.producto {
+    transition: transform 0.3s ease-in-out;
+}
 /* 2. NUEVA REGLA: Al pasar el mouse sobre la TARJETA COMPLETA */
-.card:hover {
+.producto:hover {
     transform: scale(1.05); /* Crece toda la tarjeta */
     z-index: 100; /* Se pone por encima de las demás */
     cursor: pointer; /* Cambia el cursor a manita */
@@ -65,7 +59,6 @@ body {
     background: linear-gradient(135deg, #6a62cf 0%, hsl(152, 82%, 63%) 100%);
     color: white;
     padding: 20px 30px;
-    border-radius: 12px 12px 0 0;
 }
 
 /* Botones de Admin flotantes en la tarjeta */
