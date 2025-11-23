@@ -8,39 +8,85 @@ import { Cart } from './cart.js';
 let currentUser = null;
 let editId = null;
 
-// Inicialización
+// ==========================================
+// 1. INICIALIZACIÓN
+// ==========================================
 document.addEventListener('DOMContentLoaded', async () => {
-    UI.init();
-    Cart.renderBadge(); // Cargar estado del carrito
+    // Intentamos inicializar UI y Carrito de forma segura
+    try { UI.init(); } catch (e) { console.warn("UI init warning", e); }
+    try { Cart.renderBadge(); } catch (e) { console.warn("Cart init warning", e); }
     
+    // Escuchamos el estado de autenticación (Login/Logout)
     onAuthStateChanged(auth, (user) => {
         currentUser = user;
-        UI.toggleAdmin(user);
+        
+        // A) Intentamos usar la función antigua UI, pero si falla, no detenemos el programa
+        try { UI.toggleAdmin(user); } catch (e) { console.log("UI Toggle omitido"); }
+
+        // B) LÓGICA MAESTRA DE PANELES (Esto arregla la duplicidad sí o sí)
+        const adminPanel = document.getElementById('adminPanelContainer');
+        const clientPanel = document.getElementById('clientPanelContainer');
+        const loginBtn = document.getElementById('btnLoginLi');
+        const logoutBtn = document.getElementById('btnLogoutLi');
+        const cartFab = document.querySelector('.cart-fab'); // Botón flotante del carrito
+
+        if (user) {
+            // ---> ES ADMINISTRADOR
+            if(adminPanel) adminPanel.style.display = 'block';   // Muestra Admin
+            if(clientPanel) clientPanel.style.display = 'none';  // Oculta Cliente
+            if(loginBtn) loginBtn.style.display = 'none';
+            if(logoutBtn) logoutBtn.style.display = 'block';
+            if(cartFab) cartFab.style.display = 'none'; // El admin no compra, oculta carrito
+        } else {
+            // ---> ES CLIENTE
+            if(adminPanel) adminPanel.style.display = 'none';    // Oculta Admin
+            if(clientPanel) clientPanel.style.display = 'block'; // Muestra Cliente
+            if(loginBtn) loginBtn.style.display = 'block';
+            if(logoutBtn) logoutBtn.style.display = 'none';
+            if(cartFab) cartFab.style.display = 'block'; // El cliente sí compra
+        }
+        
+        // C) Forzar actualización de iconos de borrar/editar en las tarjetas
+        setTimeout(() => {
+            const adminActions = document.querySelectorAll('.admin-actions');
+            adminActions.forEach(el => el.style.display = user ? 'flex' : 'none');
+        }, 500); // Pequeño retraso para asegurar que las tarjetas existan
     });
 
     await cargarCatalogo(true);
 });
 
+// Función para cargar productos
 async function cargarCatalogo(reset = false) {
-    UI.showLoading(true);
-    const productos = await Store.load(reset);
-    UI.renderProducts(productos, !reset, currentUser);
-    UI.updateLoadMoreBtn(Store.hasMore);
-    UI.showLoading(false);
+    try {
+        UI.showLoading(true);
+        const productos = await Store.load(reset);
+        // Renderizamos productos pasando el usuario actual para que sepa si mostrar botones de edición
+        UI.renderProducts(productos, !reset, currentUser);
+        UI.updateLoadMoreBtn(Store.hasMore);
+    } catch (e) {
+        console.error("Error cargando catálogo", e);
+    } finally {
+        UI.showLoading(false);
+    }
 }
 
 // ==========================================
-// EXPORTAR FUNCIONES A WINDOW (Para el HTML)
+// 2. FUNCIONES GLOBALES (Window)
 // ==========================================
 
+// --- Autenticación ---
 window.iniciarSesion = async () => {
     const u = document.getElementById('loginUser').value;
     const p = document.getElementById('loginPass').value;
     try {
         await Auth.login(u, p);
         M.Modal.getInstance(document.getElementById('modalLogin')).close();
-        M.toast({html: 'Bienvenido', classes: 'green'});
-    } catch(e) { M.toast({html: 'Error login', classes: 'red'}); }
+        M.toast({html: 'Bienvenido Admin', classes: 'green'});
+    } catch(e) { 
+        console.error(e);
+        M.toast({html: 'Error de credenciales', classes: 'red'}); 
+    }
 };
 
 window.cerrarSesion = async () => {
@@ -48,8 +94,19 @@ window.cerrarSesion = async () => {
     location.reload(); 
 };
 
-window.cargarMas = () => cargarCatalogo(false);
+window.togglePassword = () => {
+    const input = document.getElementById('loginPass');
+    const icon = document.getElementById('togglePasswordBtn');
+    if (input.type === "password") {
+        input.type = "text";
+        icon.innerText = "visibility";
+    } else {
+        input.type = "password";
+        icon.innerText = "visibility_off";
+    }
+};
 
+// --- Carrito ---
 window.agregarCarrito = (id) => {
     const p = Store.products.find(x => x.id === id);
     if(p) { Cart.add(p); M.toast({html: 'Añadido al carrito', classes: 'green rounded'}); }
@@ -67,25 +124,26 @@ window.updateCart = (id, n) => {
 
 window.finalizarCompra = () => {
     const items = Cart.items;
-    if(!items.length) return;
+    if(!items.length) return M.toast({html: 'Carrito vacío'});
     let msg = "Hola, quiero pedir:\n";
     items.forEach(i => msg += `- ${i.nombre} (${i.qty})\n`);
     window.open(`https://wa.me/5215518675722?text=${encodeURIComponent(msg)}`, '_blank');
 };
 
-// --- Funciones CRUD Admin ---
+// --- Gestión de Productos (CRUD) ---
+window.cargarMas = () => cargarCatalogo(false);
 
 window.abrirModalAgregar = () => {
     document.getElementById('formProducto').reset();
-    editId = null;
-    document.getElementById('modalTitulo').innerText = "Nuevo";
+    window.productoEditandoId = null; // Resetear ID global
+    document.getElementById('modalTitulo').innerText = "Nuevo Producto";
     M.Modal.getInstance(document.getElementById('modalProducto')).open();
 };
 
 window.editarProducto = (id) => {
     const p = Store.products.find(x => x.id === id);
     if(!p) return;
-    window.productoEditandoId = id;
+    window.productoEditandoId = id; // Guardar ID globalmente
     
     document.getElementById('nombre').value = p.nombre;
     document.getElementById('precio').value = p.precio;
@@ -93,17 +151,14 @@ window.editarProducto = (id) => {
     document.getElementById('descripcion').value = p.descripcion;
     document.getElementById('categoria').value = p.categoria;
     
-    // RECUPERAR IMÁGENES: Array a Texto (unido por saltos de línea)
     let listaUrls = "";
-    if (p.imagenes && Array.isArray(p.imagenes)) {
-        listaUrls = p.imagenes.join('\n');
-    } else if (p.imagen) {
-        listaUrls = p.imagen;
-    }
+    if (p.imagenes && Array.isArray(p.imagenes)) listaUrls = p.imagenes.join('\n');
+    else if (p.imagen) listaUrls = p.imagen;
+    
     document.getElementById('imgUrls').value = listaUrls;
 
     M.updateTextFields();
-    M.textareaAutoResize(document.getElementById('imgUrls')); // Ajustar tamaño
+    M.textareaAutoResize(document.getElementById('imgUrls'));
     M.FormSelect.init(document.querySelectorAll('select'));
     
     document.getElementById('modalTitulo').innerText = "Editar Producto";
@@ -111,7 +166,6 @@ window.editarProducto = (id) => {
 };
 
 window.guardarProducto = async () => {
-    // Capturar las URLs línea por línea
     const imgText = document.getElementById('imgUrls').value.trim();
     const imagenesLista = imgText ? imgText.split('\n').map(url => url.trim()).filter(u => u.length > 0) : [];
 
@@ -121,8 +175,8 @@ window.guardarProducto = async () => {
         categoria: document.getElementById('categoria').value,
         stock: Number(document.getElementById('stock').value),
         descripcion: document.getElementById('descripcion').value,
-        imagenes: imagenesLista,            // Guardamos el array completo
-        imagen: imagenesLista[0] || ''      // Guardamos la primera como principal
+        imagenes: imagenesLista,
+        imagen: imagenesLista[0] || ''
     };
     
     try {
@@ -132,17 +186,17 @@ window.guardarProducto = async () => {
         
         M.Modal.getInstance(document.getElementById('modalProducto')).close();
         await cargarCatalogo(true); 
-        M.toast({html: '✅ Guardado correctamente', classes: 'green'});
+        M.toast({html: '✅ Guardado', classes: 'green'});
     } catch(e) { 
         console.error(e); 
-        M.toast({html: '❌ Error al guardar', classes: 'red'}); 
+        M.toast({html: 'Error al guardar', classes: 'red'}); 
     } finally { 
         UI.showLoading(false); 
     }
 };
 
 window.eliminarProducto = async (id) => {
-    if(confirm('¿Eliminar?')) {
+    if(confirm('¿Eliminar producto?')) {
         await Store.delete(id);
         await cargarCatalogo(true);
     }
@@ -152,81 +206,69 @@ window.verDetalle = (id) => {
     const p = Store.products.find(item => item.id === id);
     if (!p) return;
 
-    document.getElementById('detalleNombre').innerText = p.nombre;
-    document.getElementById('detallePrecio').innerText = `$${Number(p.precio).toFixed(2)}`;
-    document.getElementById('detalleCategoria').innerText = p.categoria;
-    document.getElementById('detalleStock').innerText = `Stock: ${p.stock || 0}`;
-    document.getElementById('detalleDescripcion').innerText = p.descripcion || "Sin descripción";
+    // Llenar datos básicos
+    const safeText = (id, text) => { if(document.getElementById(id)) document.getElementById(id).innerText = text; };
+    safeText('detalleNombre', p.nombre);
+    safeText('detallePrecio', `$${Number(p.precio).toFixed(2)}`);
+    safeText('detalleCategoria', p.categoria);
+    safeText('detalleStock', `Stock: ${p.stock || 0}`);
+    safeText('detalleDescripcion', p.descripcion || "Sin descripción");
 
-    // CONSTRUIR EL HTML DEL CARRUSEL
+    // Carrusel
     const carruselContainer = document.getElementById('carruselProducto');
-    let htmlImagenes = '';
-    
-    let imagenesParaMostrar = [];
-    if (p.imagenes && p.imagenes.length > 0) imagenesParaMostrar = p.imagenes;
-    else if (p.imagen) imagenesParaMostrar = [p.imagen];
-    else imagenesParaMostrar = ['https://via.placeholder.com/400x300?text=Sin+Imagen'];
+    if(carruselContainer) {
+        let htmlImagenes = '';
+        let imagenesParaMostrar = (p.imagenes && p.imagenes.length > 0) ? p.imagenes : [p.imagen || 'https://via.placeholder.com/400x300?text=Sin+Imagen'];
+        
+        imagenesParaMostrar.forEach(url => {
+            htmlImagenes += `<a class="carousel-item" href="#!"><img src="${url}" style="object-fit: contain; width:100%; height:100%;"></a>`;
+        });
+        carruselContainer.innerHTML = htmlImagenes;
+    }
 
-    imagenesParaMostrar.forEach(url => {
-        htmlImagenes += `<a class="carousel-item" href="#!"><img src="${url}" style="object-fit: contain; width:100%; height:100%;"></a>`;
-    });
-
-    carruselContainer.innerHTML = htmlImagenes;
-
-    // BOTÓN DE AGREGAR
+    // Botón Agregar
     const btnAgregar = document.getElementById('btnAgregarDesdeDetalle');
-    const nuevoBtn = btnAgregar.cloneNode(true); // Limpiar eventos viejos
-    btnAgregar.parentNode.replaceChild(nuevoBtn, btnAgregar);
-    
-    nuevoBtn.onclick = () => {
-        window.agregarCarrito(p.id);
-        M.Modal.getInstance(document.getElementById('modalDetalle')).close();
-    };
+    if(btnAgregar) {
+        const nuevoBtn = btnAgregar.cloneNode(true);
+        btnAgregar.parentNode.replaceChild(nuevoBtn, btnAgregar);
+        nuevoBtn.onclick = () => {
+            window.agregarCarrito(p.id);
+            M.Modal.getInstance(document.getElementById('modalDetalle')).close();
+        };
+    }
 
-    // ABRIR MODAL E INICIAR CARRUSEL
-    const modalInstancia = M.Modal.getInstance(document.getElementById('modalDetalle'));
-    modalInstancia.open();
+    M.Modal.getInstance(document.getElementById('modalDetalle')).open();
     
-    // Pequeño retraso para asegurar que el modal es visible antes de iniciar el carrusel
     setTimeout(() => {
         const elems = document.querySelectorAll('.carousel');
-        M.Carousel.init(elems, {
-            fullWidth: true,
-            indicators: true
-        });
+        if(elems.length) M.Carousel.init(elems, { fullWidth: true, indicators: true });
     }, 200);
 };
 // ==========================================
-// FILTRO DE BÚSQUEDA (Para el Panel Admin)
+// 3. BÚSQUEDA (Funciona para Admin y Cliente)
 // ==========================================
-window.filtrarProductos = () => {
-    const texto = document.getElementById('busqueda').value.toLowerCase();
-    const tarjetas = document.querySelectorAll('#listaProductos .col'); // Selecciona las columnas de productos
 
-    tarjetas.forEach(tarjeta => {
-        // Busca el título dentro de la tarjeta
-        const titulo = tarjeta.querySelector('.card-title').innerText.toLowerCase();
-        
-        // Muestra u oculta según coincidencia
-        if (titulo.includes(texto)) {
-            tarjeta.style.display = 'block';
+function ejecutarFiltro(idInput) {
+    const input = document.getElementById(idInput);
+    if (!input) return; // Si no existe el input, no hace nada
+    
+    const textoBuscado = input.value.toLowerCase().trim();
+    
+    // Seleccionamos las columnas (col) dentro del contenedor de productos
+    const tarjetas = document.querySelectorAll('#listaProductos .col');
+
+    tarjetas.forEach(col => {
+        // Obtenemos todo el texto de la tarjeta (título, precio, categoría)
+        const contenidoTarjeta = col.textContent || col.innerText;
+
+        // Si el texto de la tarjeta incluye lo que escribimos...
+        if (contenidoTarjeta.toLowerCase().includes(textoBuscado)) {
+            col.style.display = ''; // ...la mostramos
         } else {
-            tarjeta.style.display = 'none';
+            col.style.display = 'none'; // ...si no, la ocultamos
         }
     });
-};
-// ==========================================
-// FUNCIÓN PARA VER/OCULTAR CONTRASEÑA
-// ==========================================
-window.togglePassword = () => {
-    const input = document.getElementById('loginPass');
-    const icon = document.getElementById('togglePasswordBtn');
-    
-    if (input.type === "password") {
-        input.type = "text";
-        icon.innerText = "visibility"; // Cambia icono a ojo abierto
-    } else {
-        input.type = "password";
-        icon.innerText = "visibility_off"; // Cambia icono a ojo tachado
-    }
-};
+}
+
+window.filtrarProductos = () => ejecutarFiltro('busqueda');          // Para Admin
+window.filtrarProductosCliente = () => ejecutarFiltro('busquedaCliente'); // Para Cliente
